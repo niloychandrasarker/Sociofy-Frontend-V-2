@@ -57,7 +57,7 @@ const HomeRight = () => {
             user.popularUsers?.slice(0, 5).map((userItem, index) => (
               <PopularUserCard key={userItem.id || index} user={userItem} />
             ))
-          ))}
+          )}
         </div>
       </Card>
 
