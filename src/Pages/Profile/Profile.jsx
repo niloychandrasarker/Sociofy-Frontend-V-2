@@ -1,10 +1,12 @@
 import { Avatar, Box, Button, Tab, Tabs } from "@mui/material";
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import PostCard from "../../Compunenet/Post/PostCard";
 import UserReelsCard from "../../Compunenet/Reels/UserReelsCard";
 import ProfileModal from "./ProfileModal";
+import { getUserPostsAction } from "../../Redux/Post/post.action";
+import { getUserByIdAction } from "../../Redux/User/user.action";
 
 const tabs = [
   { value: "post", name: "Post" },
@@ -12,30 +14,42 @@ const tabs = [
   { value: "saved", name: "Saved" },
   { value: "repost", name: "Repost" },
 ];
-const posts = [1, 1, 1, 1, 1, 1];
 const reels = [1, 1, 1, 1, 1, 1, 1, 1];
 const savedPost = [1, 1, 1, 1, 1, 1, 1];
 
 const Profile = () => {
   const { id } = useParams();
+  const dispatch = useDispatch();
   const [value, setValue] = React.useState("post");
   const [openEdit, setOpenEdit] = React.useState(false);
-  const { auth } = useSelector((store) => store);
+  const { auth, post, user } = useSelector((store) => store);
+
+  useEffect(() => {
+    if (id) {
+      dispatch(getUserByIdAction(id));
+      dispatch(getUserPostsAction(id));
+    }
+  }, [dispatch, id]);
 
   const handleChange = (event, newValue) => {
     setValue(newValue);
   };
 
-  // User info fallback
+  // Determine if viewing own profile or another user's profile
+  const isOwnProfile = auth.user?.id?.toString() === id;
+  const profileUser = isOwnProfile ? auth.user : user.selectedUser;
+  const userPosts = post.userPosts || [];
+
+  // User info
   const fullName =
-    (auth.user?.firstName || "") + " " + (auth.user?.lastName || "");
-  const username = (auth.user?.firstName + auth.user?.lastName)
+    (profileUser?.firstName || "") + " " + (profileUser?.lastName || "");
+  const username = (profileUser?.firstName + profileUser?.lastName)
     ?.replace(/\s+/g, "")
     .toLowerCase();
   const avatarSrc =
-    auth.user?.avatar ||
+    profileUser?.avatar ||
     "https://cdn.pixabay.com/photo/2023/04/27/10/22/cat-7954262_640.jpg";
-  const bio = auth.user?.bio || "Welcome to my profile!";
+  const bio = profileUser?.bio || "Welcome to my profile!";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex justify-center px-2 sm:px-4">
@@ -47,7 +61,7 @@ const Profile = () => {
             <img
               className="w-full h-full object-cover"
               src={
-                auth.user?.cover ||
+                profileUser?.cover ||
                 "https://media.istockphoto.com/id/468621254/photo/encircling-sun.jpg?s=612x612&w=0&k=20&c=yw9bFGrjfAySY8b3jOwHN635IyvzskDiqL0C0jpLGFU="
               }
               alt="cover"
@@ -75,30 +89,46 @@ const Profile = () => {
             </p>
             <div className="flex gap-6 items-center py-3 text-gray-700 text-sm sm:text-base">
               <span>
-                <b>{auth.user?.postsCount ?? 41}</b> Posts
+                <b>{profileUser?.postsCount ?? userPosts.length}</b> Posts
               </span>
               <span>
-                <b>{auth.user?.followers ?? 35}</b> Followers
+                <b>{profileUser?.followers ?? 35}</b> Followers
               </span>
               <span>
-                <b>{auth.user?.following ?? 5}</b> Following
+                <b>{profileUser?.following ?? 5}</b> Following
               </span>
             </div>
             <p className="text-center text-gray-600 max-w-xl mb-4">{bio}</p>
-            <Button
-              sx={{
-                borderRadius: "20px",
-                textTransform: "none",
-                px: 4,
-                fontWeight: 600,
-                boxShadow: "none",
-                background: "linear-gradient(90deg, #2563eb 0%, #6366f1 100%)",
-              }}
-              variant="contained"
-              onClick={() => setOpenEdit(true)}
-            >
-              Edit Profile
-            </Button>
+            {isOwnProfile ? (
+              <Button
+                sx={{
+                  borderRadius: "20px",
+                  textTransform: "none",
+                  px: 4,
+                  fontWeight: 600,
+                  boxShadow: "none",
+                  background: "linear-gradient(90deg, #2563eb 0%, #6366f1 100%)",
+                }}
+                variant="contained"
+                onClick={() => setOpenEdit(true)}
+              >
+                Edit Profile
+              </Button>
+            ) : (
+              <Button
+                sx={{
+                  borderRadius: "20px",
+                  textTransform: "none",
+                  px: 4,
+                  fontWeight: 600,
+                  boxShadow: "none",
+                  background: "linear-gradient(90deg, #2563eb 0%, #6366f1 100%)",
+                }}
+                variant="contained"
+              >
+                Follow
+              </Button>
+            )}
           </div>
         </div>
 
@@ -122,14 +152,27 @@ const Profile = () => {
           <div className="flex justify-center">
             {value === "post" && (
               <div className="space-y-5 w-full max-w-2xl my-10">
-                {posts.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="border border-slate-100 rounded-md shadow-sm bg-white"
-                  >
-                    <PostCard />
+                {post.loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                   </div>
-                ))}
+                ) : userPosts.length > 0 ? (
+                  userPosts.map((postItem, idx) => (
+                    <div
+                      key={postItem.id || idx}
+                      className="border border-slate-100 rounded-md shadow-sm bg-white"
+                    >
+                      <PostCard post={postItem} />
+                    </div>
+                  ))
+                ) : (
+                  <div
+                    className="text-center py-12 text-gray-500"
+                  >
+                    <p className="text-lg">No posts yet</p>
+                    <p className="text-sm">Share your first post to get started!</p>
+                  </div>
+                )}
               </div>
             )}
             {value === "reels" && (
@@ -156,7 +199,9 @@ const Profile = () => {
             )}
           </div>
         </section>
-        <ProfileModal open={openEdit} handleClose={() => setOpenEdit(false)} />
+        {isOwnProfile && (
+          <ProfileModal open={openEdit} handleClose={() => setOpenEdit(false)} />
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import Avatar from "@mui/material/Avatar";
 import AddIcon from "@mui/icons-material/Add";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import StoryCircle from "./StoryCircle";
 import Card from "@mui/material/Card";
 import ImageIcon from "@mui/icons-material/Image";
@@ -12,12 +12,20 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import CreatePostModal from "./CreatePostModal";
+import { useDispatch, useSelector } from "react-redux";
+import { getAllPostsAction } from "../../Redux/Post/post.action";
 
 const story = [1, 1, 1, 1, 1, 1];
-const posts = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 
 function MidlePart() {
+  const dispatch = useDispatch();
+  const { auth, post } = useSelector((store) => store);
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
+
+  useEffect(() => {
+    dispatch(getAllPostsAction());
+  }, [dispatch]);
 
   const handleOpenCreatePostModal = () => {
     setShowCreatePostModal(true);
@@ -69,7 +77,7 @@ function MidlePart() {
               readOnly
               onClick={handleOpenCreatePostModal}
               className="flex-1 outline-none rounded-full px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border border-gray-200 hover:bg-gray-100 focus:bg-white focus:border-blue-300 transition-all duration-200 cursor-pointer text-sm sm:text-base text-gray-500"
-              placeholder="What's on your mind, Niloy?"
+              placeholder={`What's on your mind, ${auth.user?.firstName}?`}
               type="text"
             />
           </div>
@@ -115,124 +123,23 @@ function MidlePart() {
         </div>
       </Card>
 
-      {/* Create Post Modal - Mobile Optimized */}
-      {showCreatePostModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl transform transition-all duration-300 max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
-              <h2 className="text-lg font-semibold text-gray-900">Create post</h2>
-              <button
-                onClick={handleCloseCreatePostModal}
-                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-4 space-y-4 overflow-y-auto max-h-[calc(90vh-120px)]">
-              {/* User Info */}
-              <div className="flex items-center space-x-3">
-                <Avatar 
-                  sx={{ width: 48, height: 48 }}
-                  src="https://cdn.pixabay.com/photo/2020/07/01/12/58/icon-5359553_1280.png"
-                  className="ring-2 ring-gray-100"
-                />
-                <div>
-                  <h3 className="font-semibold text-gray-900">Code With Niloy</h3>
-                  <div className="flex items-center space-x-1 mt-1">
-                    <button className="flex items-center space-x-1 px-2 py-1 bg-gray-100 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-200 transition-colors">
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                      </svg>
-                      <span>Public</span>
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Text Area */}
-              <textarea
-                placeholder="What's on your mind, Niloy?"
-                className="w-full h-32 resize-none outline-none text-lg placeholder-gray-400 bg-transparent"
-                autoFocus
-              />
-
-              {/* Quick Actions */}
-              <div className="grid grid-cols-2 gap-3">
-                <button className="flex items-center justify-center space-x-2 p-3 border-2 border-dashed border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 group">
-                  <ImageIcon className="text-green-500 group-hover:text-green-600" />
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-green-700">Add Photo</span>
-                </button>
-                <button className="flex items-center justify-center space-x-2 p-3 border-2 border-dashed border-gray-200 rounded-xl hover:border-purple-300 hover:bg-purple-50 transition-all duration-200 group">
-                  <VideocamIcon className="text-purple-500 group-hover:text-purple-600" />
-                  <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700">Add Video</span>
-                </button>
-              </div>
-
-              {/* Additional Options */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-red-50 rounded-lg">
-                      <LocationOnIcon className="text-red-500 text-lg" />
-                    </div>
-                    <span className="font-medium text-gray-700">Add location</span>
-                  </div>
-                  <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <PersonAddIcon className="text-blue-500 text-lg" />
-                    </div>
-                    <span className="font-medium text-gray-700">Tag people</span>
-                  </div>
-                  <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-yellow-50 rounded-lg">
-                      <EmojiEmotionsIcon className="text-yellow-500 text-lg" />
-                    </div>
-                    <span className="font-medium text-gray-700">Feeling/activity</span>
-                  </div>
-                  <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-gray-100 bg-gray-50">
-              <button
-                onClick={handleCloseCreatePostModal}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 hover-scale disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Post
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Create Post Modal */}
+      <CreatePostModal 
+        open={showCreatePostModal} 
+        onClose={handleCloseCreatePostModal}
+        user={auth.user}
+      />
 
       {/* Posts Section */}
       <div className="space-y-6">
-        {posts.map((item, index) => (
-          <PostCard key={index} />
+        {post.loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : (
+          post.posts?.map((postItem, index) => (
+            <PostCard key={postItem.id || index} post={postItem} />
+          ))
         ))}
       </div>
 

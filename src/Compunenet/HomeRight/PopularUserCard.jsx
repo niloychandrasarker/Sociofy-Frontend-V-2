@@ -2,12 +2,27 @@ import { Avatar, CardHeader, IconButton } from '@mui/material';
 import { red } from "@mui/material/colors";
 import AddIcon from '@mui/icons-material/Add';
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { followUserAction } from '../../Redux/User/user.action';
 
-const PopularUserCard = () => {
+const PopularUserCard = ({ user }) => {
+  const dispatch = useDispatch();
   const [isFollowing, setIsFollowing] = useState(false);
 
   const handleFollow = () => {
+    if (user?.id) {
+      dispatch(followUserAction(user.id));
+    }
     setIsFollowing(!isFollowing);
+  };
+
+  // Fallback data for demo
+  const userData = user || {
+    id: 1,
+    firstName: "Code with",
+    lastName: "niloy",
+    avatar: null,
+    username: "codewithniloy"
   };
 
   return (
@@ -21,15 +36,16 @@ const PopularUserCard = () => {
           }} 
           aria-label="user"
           className="ring-2 ring-gray-100 group-hover:ring-blue-100 transition-all duration-200"
+          src={userData.avatar}
         >
-          R
+          {userData.firstName?.[0]?.toUpperCase() || 'U'}
         </Avatar>
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-gray-900 text-sm lg:text-base truncate">
-            Code with niloy
+            {userData.firstName} {userData.lastName}
           </h4>
           <p className="text-xs lg:text-sm text-gray-500 truncate">
-            @codewithniloy • Suggested for you
+            @{userData.username || (userData.firstName + userData.lastName)?.replace(/\s+/g, '').toLowerCase()} • Suggested for you
           </p>
         </div>
       </div>

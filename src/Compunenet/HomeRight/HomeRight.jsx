@@ -2,10 +2,19 @@ import React from 'react';
 import SearchUsers from '../SearchUser/SearchUsers';
 import PopularUserCard from './PopularUserCard';
 import { Card } from '@mui/material';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { getPopularUsersAction } from '../../Redux/User/user.action';
 
-const popularUser = [1, 1, 1, 1, 1];
 
 const HomeRight = () => {
+  const dispatch = useDispatch();
+  const { user } = useSelector((store) => store);
+
+  useEffect(() => {
+    dispatch(getPopularUsersAction());
+  }, [dispatch]);
+
   return (
     <div className="w-full h-full p-4 lg:p-6 space-y-6 overflow-y-auto">
       {/* Search Section */}
@@ -40,8 +49,14 @@ const HomeRight = () => {
           </button>
         </div>
         <div className="space-y-4">
-          {popularUser.map((_, index) => (
-            <PopularUserCard key={index} />
+          {user.loading ? (
+            <div className="flex justify-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            </div>
+          ) : (
+            user.popularUsers?.slice(0, 5).map((userItem, index) => (
+              <PopularUserCard key={userItem.id || index} user={userItem} />
+            ))
           ))}
         </div>
       </Card>

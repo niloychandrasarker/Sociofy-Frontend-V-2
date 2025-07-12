@@ -23,6 +23,10 @@ const Sidebar = () => {
     setAnchorEl(null);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("jwt");
+    window.location.href = "/";
+  };
 const handleNavigation = (item) => {
   if (item.title === "Profile") {
     navigate(`/profile/${auth.user?.id}`);
@@ -76,10 +80,12 @@ const handleNavigation = (item) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 flex-1 min-w-0">
             <Avatar
-              src="https://cdn.pixabay.com/photo/2020/07/01/12/58/icon-5359553_1280.png"
+              src={auth.user?.avatar || "https://cdn.pixabay.com/photo/2020/07/01/12/58/icon-5359553_1280.png"}
               sx={{ width: 48, height: 48 }}
               className="ring-2 ring-blue-100 flex-shrink-0"
-            />
+            >
+              {auth.user?.firstName?.[0] || 'U'}
+            </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-lg font-semibold text-gray-900 truncate">
                 {auth.user?.firstName + " " + auth.user?.lastName}
@@ -118,7 +124,10 @@ const handleNavigation = (item) => {
             }}
           >
             <MenuItem
-              onClick={handleClose}
+              onClick={() => {
+                handleClose();
+                navigate(`/profile/${auth.user?.id}`);
+              }}
               className="hover:bg-blue-50 transition-colors"
             >
               Profile
@@ -130,7 +139,10 @@ const handleNavigation = (item) => {
               Settings
             </MenuItem>
             <MenuItem
-              onClick={handleClose}
+              onClick={() => {
+                handleClose();
+                handleLogout();
+              }}
               className="hover:bg-red-50 text-red-600 transition-colors"
             >
               Logout
