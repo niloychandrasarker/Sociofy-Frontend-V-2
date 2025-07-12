@@ -140,7 +140,7 @@ function MidlePart() {
           post.posts?.map((postItem, index) => (
             <PostCard key={postItem.id || index} post={postItem} />
           ))
-        ))}
+        )}
       </div>
 
       {/* Mobile HomeRight Section - Only visible on mobile */}
