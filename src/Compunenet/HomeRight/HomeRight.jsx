@@ -53,11 +53,11 @@ const HomeRight = () => {
             <div className="flex justify-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             </div>
-          ) : (
+          ) :
             user.popularUsers?.slice(0, 5).map((userItem, index) => (
               <PopularUserCard key={userItem.id || index} user={userItem} />
             ))
-          )}
+          }
         </div>
       </Card>
 
