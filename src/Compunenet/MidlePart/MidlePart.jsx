@@ -15,16 +15,17 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import CreatePostModal from "./CreatePostModal";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllPostsAction } from "../../Redux/Post/post.action";
+import { getAllStoriesAction } from "../../Redux/Story/story.action";
 
-const story = [1, 1, 1, 1, 1, 1];
 
 function MidlePart() {
   const dispatch = useDispatch();
-  const { auth, post } = useSelector((store) => store);
+  const { auth, post, story } = useSelector((store) => store);
   const [showCreatePostModal, setShowCreatePostModal] = useState(false);
 
   useEffect(() => {
     dispatch(getAllPostsAction());
+    dispatch(getAllStoriesAction());
   }, [dispatch]);
 
   const handleOpenCreatePostModal = () => {
@@ -57,8 +58,8 @@ function MidlePart() {
           </div>
 
           {/* Story Items */}
-          {story.map((item, index) => (
-            <StoryCircle key={index} />
+          {story.stories?.map((storyItem, index) => (
+            <StoryCircle key={storyItem.id || index} user={storyItem.user} />
           ))}
         </div>
       </Card>

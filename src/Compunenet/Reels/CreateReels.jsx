@@ -5,8 +5,11 @@ import VideocamIcon from '@mui/icons-material/Videocam';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import FilterIcon from '@mui/icons-material/Filter';
 import { useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { createReelAction } from '../../Redux/Reels/reels.action';
 
 const CreateReels = () => {
+  const dispatch = useDispatch();
   const { auth } = useSelector((store) => store);
   const [reelData, setReelData] = useState({
     videoUrl: '',
@@ -29,8 +32,7 @@ const CreateReels = () => {
 
     setIsLoading(true);
     try {
-      // Here you would dispatch an action to create the reel
-      console.log('Creating reel:', reelData);
+      await dispatch(createReelAction(reelData));
       // Reset form
       setReelData({ videoUrl: '', caption: '', music: '', filter: 'none' });
     } catch (error) {

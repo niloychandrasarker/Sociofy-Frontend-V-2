@@ -18,7 +18,8 @@ import CommentIcon from '@mui/icons-material/Comment';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd';
 import { useDispatch, useSelector } from "react-redux";
-import { likePostAction, createCommentAction, savePostAction } from "../../Redux/Post/post.action";
+import { likePostAction, savePostAction } from "../../Redux/Post/post.action";
+import { createCommentAction } from "../../Redux/Comment/comment.action";
 
 const PostCard = ({ post }) => {
   const dispatch = useDispatch();
@@ -41,7 +42,7 @@ const PostCard = ({ post }) => {
   const handleComment = (e) => {
     e.preventDefault();
     if (commentText.trim()) {
-      dispatch(createCommentAction(post.id, { content: commentText }));
+      dispatch(createCommentAction(postData.id, { content: commentText }));
       setCommentText('');
     }
   };

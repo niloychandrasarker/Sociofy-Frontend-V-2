@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { getAllReelsAction, likeReelAction } from '../../Redux/Reels/reels.action';
 import UserReelsCard from './UserReelsCard';
 import { Card, IconButton } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
@@ -12,58 +15,24 @@ import ShareIcon from '@mui/icons-material/Share';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 
 function Reels() {
+  const dispatch = useDispatch();
+  const { reels } = useSelector((store) => store);
   const [currentReel, setCurrentReel] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [likedReels, setLikedReels] = useState(new Set());
 
-  // Mock reels data
-  const reelsData = [
-    {
-      id: 1,
-      videoUrl: "https://cdn.pixabay.com/video/2025/06/03/283533_tiny.mp4",
-      user: {
-        firstName: "John",
-        lastName: "Doe",
-        avatar: null,
-        username: "johndoe"
-      },
-      caption: "Amazing sunset timelapse! 🌅 #nature #sunset #timelapse",
-      likes: 1234,
-      comments: 89,
-      shares: 45
-    },
-    {
-      id: 2,
-      videoUrl: "https://cdn.pixabay.com/video/2025/06/03/283533_tiny.mp4",
-      user: {
-        firstName: "Sarah",
-        lastName: "Wilson",
-        avatar: null,
-        username: "sarahw"
-      },
-      caption: "Cooking my favorite pasta recipe! 🍝 #cooking #food #recipe",
-      likes: 2156,
-      comments: 156,
-      shares: 78
-    },
-    {
-      id: 3,
-      videoUrl: "https://cdn.pixabay.com/video/2025/06/03/283533_tiny.mp4",
-      user: {
-        firstName: "Mike",
-        lastName: "Johnson",
-        avatar: null,
-        username: "mikej"
-      },
-      caption: "Morning workout routine 💪 #fitness #workout #motivation",
-      likes: 987,
-      comments: 67,
-      shares: 23
-    }
-  ];
+  useEffect(() => {
+    dispatch(getAllReelsAction());
+  }, [dispatch]);
 
-  const handleLike = (reelId) => {
+  const handleLike = async (reelId) => {
+    try {
+      await dispatch(likeReelAction(reelId));
+    } catch (error) {
+      console.error('Error liking reel:', error);
+    }
+    
     setLikedReels(prev => {
       const newSet = new Set(prev);
       if (newSet.has(reelId)) {
@@ -82,6 +51,8 @@ function Reels() {
   const handleMute = () => {
     setIsMuted(!isMuted);
   };
+
+  const reelsData = reels.reels || [];
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center">

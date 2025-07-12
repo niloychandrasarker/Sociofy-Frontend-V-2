@@ -1,78 +1,118 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Avatar, Card, IconButton, TextField, InputAdornment } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import SendIcon from '@mui/icons-material/Send';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { getUserChatsAction, createChatAction } from '../../Redux/Chat/chat.action';
+import { getChatMessagesAction, createMessageAction, messageReadAction } from '../../Redux/Message/message.action';
+import WebSocketService from '../../Config/websocket';
 
 const Message = () => {
-  const { auth } = useSelector((store) => store);
+  const dispatch = useDispatch();
+  const { auth, chat, message } = useSelector((store) => store);
   const [selectedChat, setSelectedChat] = useState(null);
-  const [message, setMessage] = useState('');
+  const [messageText, setMessageText] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
 
-  // Mock data for conversations
-  const conversations = [
-    {
-      id: 1,
-      user: { firstName: 'John', lastName: 'Doe', avatar: null },
-      lastMessage: 'Hey! How are you doing?',
-      timestamp: '2 min ago',
-      unread: 2,
-      online: true
-    },
-    {
-      id: 2,
-      user: { firstName: 'Sarah', lastName: 'Wilson', avatar: null },
-      lastMessage: 'Thanks for sharing that article!',
-      timestamp: '1 hour ago',
-      unread: 0,
-      online: false
-    },
-    {
-      id: 3,
-      user: { firstName: 'Mike', lastName: 'Johnson', avatar: null },
-      lastMessage: 'See you tomorrow at the meeting',
-      timestamp: '3 hours ago',
-      unread: 1,
-      online: true
+  useEffect(() => {
+    // Load user chats on component mount
+    dispatch(getUserChatsAction());
+  }, [dispatch]);
+
+  useEffect(() => {
+    // Load messages when a chat is selected
+    if (selectedChat) {
+      dispatch(getChatMessagesAction(selectedChat.id));
+      WebSocketService.joinChat(selectedChat.id);
     }
-  ];
+  }, [selectedChat, dispatch]);
 
-  // Mock messages for selected chat
-  const messages = [
-    {
-      id: 1,
-      senderId: 1,
-      content: 'Hey! How are you doing?',
-      timestamp: '10:30 AM',
-      isOwn: false
-    },
-    {
-      id: 2,
-      senderId: auth.user?.id,
-      content: 'I\'m doing great! Thanks for asking. How about you?',
-      timestamp: '10:32 AM',
-      isOwn: true
-    },
-    {
-      id: 3,
-      senderId: 1,
-      content: 'I\'m good too! Working on some exciting projects.',
-      timestamp: '10:35 AM',
-      isOwn: false
+  useEffect(() => {
+    // Scroll to bottom when new messages arrive
+    scrollToBottom();
+  }, [message.messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleChatSelect = (chatData) => {
+    if (selectedChat) {
+      WebSocketService.leaveChat(selectedChat.id);
     }
-  ];
+    setSelectedChat(chatData);
+  };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (message.trim()) {
-      // Here you would dispatch an action to send the message
-      console.log('Sending message:', message);
-      setMessage('');
+    if (messageText.trim() && selectedChat) {
+      try {
+        const messageData = {
+          chatId: selectedChat.id,
+          content: messageText,
+        };
+        
+        await dispatch(createMessageAction(messageData));
+        setMessageText('');
+        
+        // Stop typing indicator
+        if (isTyping) {
+          WebSocketService.stopTyping(selectedChat.id);
+          setIsTyping(false);
+        }
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
     }
   };
+
+  const handleTyping = (e) => {
+    setMessageText(e.target.value);
+    
+    if (selectedChat && !isTyping) {
+      setIsTyping(true);
+      WebSocketService.startTyping(selectedChat.id);
+    }
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Set new timeout to stop typing
+    typingTimeoutRef.current = setTimeout(() => {
+      if (selectedChat && isTyping) {
+        WebSocketService.stopTyping(selectedChat.id);
+        setIsTyping(false);
+      }
+    }, 1000);
+  };
+
+  const handleMessageRead = (messageId) => {
+    dispatch(messageReadAction(messageId));
+  };
+
+  const isUserOnline = (userId) => {
+    return message.onlineUsers.includes(userId);
+  };
+
+  const isUserTyping = (chatId) => {
+    return message.typingUsers[chatId]?.length > 0;
+  };
+
+  const filteredChats = chat.chats.filter(chatItem =>
+    chatItem.users.some(user => 
+      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+  );
+
+  const currentChatMessages = selectedChat ? message.messages[selectedChat.id] || [] : [];
 
   return (
     <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex">
@@ -104,43 +144,63 @@ const Message = () => {
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
-          {conversations.map((conversation) => (
-            <div
-              key={conversation.id}
-              onClick={() => setSelectedChat(conversation)}
-              className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 ${
-                selectedChat?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
-              }`}
-            >
-              <div className="relative">
-                <Avatar
-                  sx={{ width: 48, height: 48 }}
-                  src={conversation.user.avatar}
-                >
-                  {conversation.user.firstName[0]}
-                </Avatar>
-                {conversation.online && (
-                  <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                )}
-              </div>
-              <div className="ml-3 flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900 truncate">
-                    {conversation.user.firstName} {conversation.user.lastName}
-                  </h3>
-                  <span className="text-xs text-gray-500">{conversation.timestamp}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-600 truncate">{conversation.lastMessage}</p>
-                  {conversation.unread > 0 && (
-                    <span className="ml-2 bg-blue-600 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                      {conversation.unread}
-                    </span>
-                  )}
-                </div>
-              </div>
+          {chat.loading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
-          ))}
+          ) : (
+            filteredChats.map((conversation) => {
+              const otherUser = conversation.users.find(user => user.id !== auth.user?.id);
+              const lastMessage = conversation.lastMessage;
+              const unreadCount = conversation.unreadCount || 0;
+              
+              return (
+                <div
+                  key={conversation.id}
+                  onClick={() => handleChatSelect(conversation)}
+                  className={`flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 ${
+                    selectedChat?.id === conversation.id ? 'bg-blue-50 border-blue-200' : ''
+                  }`}
+                >
+                  <div className="relative">
+                    <Avatar
+                      sx={{ width: 48, height: 48 }}
+                      src={otherUser?.avatar}
+                    >
+                      {otherUser?.firstName?.[0]}
+                    </Avatar>
+                    {isUserOnline(otherUser?.id) && (
+                      <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                    )}
+                  </div>
+                  <div className="ml-3 flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900 truncate">
+                        {otherUser?.firstName} {otherUser?.lastName}
+                      </h3>
+                      <span className="text-xs text-gray-500">
+                        {lastMessage?.timestamp ? new Date(lastMessage.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-gray-600 truncate">
+                        {isUserTyping(conversation.id) ? (
+                          <span className="text-blue-600 italic">Typing...</span>
+                        ) : (
+                          lastMessage?.content || 'Start a conversation'
+                        )}
+                      </p>
+                      {unreadCount > 0 && (
+                        <span className="ml-2 bg-blue-600 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -150,47 +210,94 @@ const Message = () => {
           <>
             {/* Chat Header */}
             <div className="bg-white border-b border-gray-200 p-4 flex items-center">
-              <Avatar
-                sx={{ width: 40, height: 40 }}
-                src={selectedChat.user.avatar}
-              >
-                {selectedChat.user.firstName[0]}
-              </Avatar>
-              <div className="ml-3">
-                <h2 className="font-semibold text-gray-900">
-                  {selectedChat.user.firstName} {selectedChat.user.lastName}
-                </h2>
-                <p className="text-sm text-gray-500">
-                  {selectedChat.online ? 'Active now' : 'Last seen 2 hours ago'}
-                </p>
-              </div>
+              {(() => {
+                const otherUser = selectedChat.users.find(user => user.id !== auth.user?.id);
+                return (
+                  <>
+                    <Avatar
+                      sx={{ width: 40, height: 40 }}
+                      src={otherUser?.avatar}
+                    >
+                      {otherUser?.firstName?.[0]}
+                    </Avatar>
+                    <div className="ml-3">
+                      <h2 className="font-semibold text-gray-900">
+                        {otherUser?.firstName} {otherUser?.lastName}
+                      </h2>
+                      <p className="text-sm text-gray-500">
+                        {isUserOnline(otherUser?.id) ? (
+                          <span className="text-green-600">Active now</span>
+                        ) : (
+                          'Last seen recently'
+                        )}
+                      </p>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                      msg.isOwn
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white text-gray-900 border border-gray-200'
-                    }`}
-                  >
-                    <p className="text-sm">{msg.content}</p>
-                    <p
-                      className={`text-xs mt-1 ${
-                        msg.isOwn ? 'text-blue-100' : 'text-gray-500'
-                      }`}
+              {message.loading ? (
+                <div className="flex justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : (
+                currentChatMessages.map((msg) => {
+                  const isOwn = msg.senderId === auth.user?.id;
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                      onClick={() => !isOwn && handleMessageRead(msg.id)}
                     >
-                      {msg.timestamp}
-                    </p>
+                      <div
+                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                          isOwn
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-900 border border-gray-200'
+                        }`}
+                      >
+                        <p className="text-sm">{msg.content}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p
+                            className={`text-xs ${
+                              isOwn ? 'text-blue-100' : 'text-gray-500'
+                            }`}
+                          >
+                            {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </p>
+                          {isOwn && (
+                            <span className={`text-xs ${
+                              msg.status === 'read' ? 'text-blue-200' : 
+                              msg.status === 'delivered' ? 'text-blue-300' : 'text-blue-400'
+                            }`}>
+                              {msg.status === 'read' ? '✓✓' : 
+                               msg.status === 'delivered' ? '✓✓' : '✓'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              
+              {/* Typing Indicator */}
+              {isUserTyping(selectedChat.id) && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-200 rounded-2xl px-4 py-2">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                      <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                    </div>
                   </div>
                 </div>
-              ))}
+              )}
+              
+              <div ref={messagesEndRef} />
             </div>
 
             {/* Message Input */}
@@ -206,8 +313,8 @@ const Message = () => {
                   fullWidth
                   variant="outlined"
                   placeholder="Type a message..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  value={messageText}
+                  onChange={handleTyping}
                   size="small"
                   sx={{
                     '& .MuiOutlinedInput-root': {
@@ -217,7 +324,7 @@ const Message = () => {
                 />
                 <IconButton
                   type="submit"
-                  disabled={!message.trim()}
+                  disabled={!messageText.trim()}
                   className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
                 >
                   <SendIcon />
@@ -244,4 +351,4 @@ const Message = () => {
   );
 };
 
-export default Message
+export default Message;
